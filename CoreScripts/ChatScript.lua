@@ -1156,9 +1156,15 @@ function Chat:CreateGui()
 					local cText = self.ChatBar.Text
 					if string.sub(self.ChatBar.Text, 1, 1)  == '%' then 
 						cText = '(TEAM) ' .. string.sub(cText, 2, #cText)
-						pcall(function() PlayersService:TeamChat(cText) end)						
+						pcall(function()
+                            PlayersService:TeamChat(cText)
+                            game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(cText, "Team")
+                        end)						
 					else 
-						pcall(function() PlayersService:Chat(cText) end)						
+						pcall(function()
+                            PlayersService:Chat(cText)
+                            game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(cText, "All")
+                        end)
 					end 					
 
 					if self.ClickToChatButton then 
@@ -1293,16 +1299,23 @@ function Chat:LockAllFields(gui)
 	end 
 end
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 -- Constructor 
 -- This function initializes everything 
 function Chat:Initialize()			
-	Chat:CreateGui() 		
-	self.EventListener = PlayersService.PlayerChatted:connect(function(...) 	
-		-- This event has 4 callback arguments 
-		-- Enum.PlayerChatType.All, chatPlayer, message, targetPlayer 
-		Chat:PlayerChatted(...)
+	Chat:CreateGui() 
 
-	end)
+    -- Attempted fix for Player.Chatted
+	if ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents") then
+        self.EventListener = ReplicatedStorage.DefaultChatSystemChatEvents.OnMessageDoneFiltering.OnClientEvent:Connect(function(messageData)
+            -- Players.PlayerChatted event has 4 callback arguments 
+		    -- Enum.PlayerChatType.All, chatPlayer, message, targetPlayer
+            
+            Chat:PlayerChatted(Enum.PlayerChatType.All, game.Players:FindFirstChild(messageData.FromSpeaker), messageData.Message, nil)
+        end)
+    end
+
 
 	self.MessageThread = coroutine.create(function() end)
 	coroutine.resume(self.MessageThread)
@@ -1312,14 +1325,14 @@ function Chat:Initialize()
 	-- Eww, everytime a player is added, you have to redo the connection
 	-- Seems this is not automatic
 	-- NOTE: PlayerAdded only fires on the server, hence ChildAdded is used here 
-	PlayersService.ChildAdded:connect(function()
+	--[[PlayersService.ChildAdded:connect(function()
 		Chat.EventListener:disconnect()  
 		self.EventListener = PlayersService.PlayerChatted:connect(function(...) 	
 			-- This event has 4 callback arguments 
 			-- Enum.PlayerChatType.All, chatPlayer, message, targetPlayer 
 			Chat:PlayerChatted(...)
 		end)
-	end)
+	end)--]]
 
 	Spawn(function()
 		Chat:CullThread() 
