@@ -1,4 +1,4 @@
-local git = "https://raw.githubusercontent.com/Nobonet/2013corescripts/main"
+local git = "https://raw.githubusercontent.com/zvv1/2013corescripts/main"
 local CoreGui = game:GetService("CoreGui")
 
 local function sandbox(var,func)
